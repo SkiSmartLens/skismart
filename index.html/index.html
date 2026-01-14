@@ -1,0 +1,638 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Ski Smart Lense — Adaptive Vision</title>
+  <meta name="description" content="Photochromatic ski goggle sheet insert that adapts to changing light for optimal visibility." />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    :root {
+      --brand-start: #2563eb;
+      --brand-end: #06b6d4;
+      --trans-fast: 150ms;
+      --trans-medium: 300ms;
+      --trans-slow: 600ms;
+      --ease: cubic-bezier(.2,.9,.2,1);
+    }
+    html {
+      scroll-behavior: smooth;
+    }
+    .fade-in {
+      opacity: 0;
+      transform: translateY(30px);
+      transition: opacity 800ms ease-out, transform 800ms ease-out;
+      will-change: opacity, transform;
+    }
+    .fade-in.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    .reveal {
+      opacity: 0;
+      transform: translateY(24px) scale(0.98);
+      transition: opacity 700ms ease-out, transform 700ms ease-out;
+    }
+    .reveal.visible {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 0.75rem;
+      padding: 0.9rem 1.5rem;
+      font-weight: 600;
+    }
+    .btn-primary {
+      background: linear-gradient(90deg, var(--brand-start), var(--brand-end));
+      color: #fff;
+      transition: filter 200ms ease, transform 200ms ease;
+    }
+    .btn-primary:hover {
+      filter: brightness(1.08);
+      transform: translateY(-1px);
+    }
+    .btn-ghost {
+      background: rgba(255,255,255,0.1);
+      border: 1px solid rgba(255,255,255,0.25);
+      color: #fff;
+      backdrop-filter: blur(6px);
+      transition: background 200ms ease, transform 200ms ease;
+    }
+    .btn-ghost:hover {
+      background: rgba(255,255,255,0.2);
+      transform: translateY(-1px);
+    }
+    .card {
+      border-radius: 1rem;
+      background: #fff;
+      border: 1px solid #e2e8f0;
+      box-shadow: 0 6px 20px rgba(15,23,42,0.06);
+      transition: transform 220ms ease, box-shadow 220ms ease;
+    }
+    .card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 28px rgba(15,23,42,0.10);
+    }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.875rem;
+      color: #334155;
+      background: #f1f5f9;
+      border: 1px solid #e2e8f0;
+      border-radius: 999px;
+      padding: 0.4rem 0.75rem;
+    }
+    .input, .textarea, .select {
+      width: 100%;
+      border: 1px solid #cbd5e1;
+      border-radius: 0.75rem;
+      padding: 0.75rem 1rem;
+      outline: none;
+      transition: box-shadow 200ms ease, border-color 200ms ease;
+      background: #fff;
+    }
+    .input:focus, .textarea:focus, .select:focus {
+      border-color: #3b82f6;
+      box-shadow: 0 0 0 3px rgba(59,130,246,0.2);
+    }
+    .error {
+      border-color: #ef4444 !important;
+      box-shadow: 0 0 0 3px rgba(239,68,68,0.15) !important;
+    }
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #0f172a;
+      color: #fff;
+      padding: 0.75rem 1rem;
+      border-radius: 0.75rem;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 250ms ease, transform 250ms ease;
+      z-index: 50;
+    }
+    .toast.show {
+      opacity: 1;
+      pointer-events: auto;
+      transform: translateX(-50%) translateY(-6px);
+    }
+    /* Fluid transitions for interactive elements */
+    header, .header {
+      transition: background-color var(--trans-medium) var(--ease), border-color var(--trans-medium) var(--ease), backdrop-filter var(--trans-medium) var(--ease);
+    }
+    nav a, .btn, .badge {
+      transition: color var(--trans-fast) var(--ease), background var(--trans-fast) var(--ease), transform var(--trans-fast) var(--ease), box-shadow var(--trans-fast) var(--ease);
+    }
+    /* Gallery image micro-interaction */
+    #gallery img {
+      transition: transform var(--trans-medium) var(--ease), box-shadow var(--trans-medium) var(--ease), opacity var(--trans-fast) var(--ease);
+      will-change: transform, opacity;
+    }
+    #gallery img:hover, #gallery img:focus {
+      transform: translateY(-6px) scale(1.03);
+      box-shadow: 0 14px 40px rgba(2,6,23,0.12);
+      opacity: 1;
+    }
+    /* Slight lift for cards and badges */
+    .card { transition: transform var(--trans-medium) var(--ease), box-shadow var(--trans-medium) var(--ease), border-color var(--trans-medium) var(--ease); }
+    .card:focus-within, .card:hover { transform: translateY(-4px); }
+
+    /* Respect user motion preferences */
+    @media (prefers-reduced-motion: reduce) {
+      * { transition: none !important; animation: none !important; }
+      .fade-in, .reveal { transition: none; transform: none; opacity: 1; }
+    }
+
+    /* Video placeholder responsiveness */
+    .video-wrapper { position: relative; padding-top: 56.25%; /* 16:9 */ }
+    .video-wrapper > * { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
+    .video-placeholder { background-size: cover; background-position: center; border: 0; cursor: pointer; }
+    /* Simple container max width control for consistency */
+    .container {
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 0 1.5rem;
+    }
+   .paypal-button {
+    background-color: #0070ba; /* PayPal blue */
+    color: white;
+    border: none;
+    padding: 12px 24px;
+    font-size: 16px;
+    font-family: sans-serif;
+    border-radius: 6px;
+    cursor: pointer;
+    box-shadow: none;
+    outline: none;
+    display: inline-block;
+    text-align: center;
+    text-decoration: none;
+  }
+
+  .paypal-button:hover {
+    background-color: #005ea6;
+  }
+
+  form {
+    background: transparent;
+    border: none;
+    padding: 0;
+    margin: 0;
+  }
+ .pay-button {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh; /* Or height: 100%; */
+}
+
+.content-to-grow {
+  flex-grow: 1; /* This pushes the footer down */
+}
+
+.header, .footer {
+  flex-shrink: 0; /* Prevents them from shrinking */
+}
+</style>
+</head>
+
+<body class="ordernowbutton">
+  <!-- Top standalone Order / PayPal removed; PayPal now integrated in the Pre-Order form -->
+
+  <!-- Navigation -->
+  <header class="header fixed top-0 left-0 right-0 z-40 bg-slate-900/80 border-b border-white/10 backdrop-blur-md">
+    <div class="container">
+      <nav class="flex items-center justify-between py-4">
+        <a href="#hero" class="flex items-center gap-2 text-white font-bold">
+          <span class="inline-block w-6 h-6 rounded bg-gradient-to-r from-blue-500 to-cyan-400"></span>
+          Ski Smart Lense
+        </a>
+        <div class="hidden md:flex items-center gap-6 text-slate-200">
+          <a href="#technology" class="hover:text-white transition">Technology</a>
+          <a href="#features" class="hover:text-white transition">Features</a>
+          <a href="#gallery" class="hover:text-white transition">Gallery</a>
+          <a href="#installation" class="hover:text-white transition">Install</a>
+          <a href="#order" class="btn btn-primary">Order Now</a>
+        </div>
+        <button class="md:hidden text-white" aria-label="Menu">
+          <svg width="24" height="24" fill="none" stroke="currentColor"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+        </button>
+      </nav>
+    </div>
+  </header>
+
+  <!-- Hero -->
+  <section id="hero" class="relative min-h-[90vh] flex items-center justify-center overflow-hidden">
+    <div class="absolute inset-0 bg-cover bg-center" style="background-image:url('https://images.unsplash.com/photo-1551698618-1dfe5d97d256?auto=format&fit=crop&w=1920&q=80'); transform:scale(1.1);"></div>
+    <div class="absolute inset-0 bg-gradient-to-b from-slate-900/70 via-slate-900/40 to-slate-900/70"></div>
+    <div class="relative z-10 container">
+      <div class="max-w-4xl mx-auto text-center fade-in">
+        <div class="inline-flex items-center gap-2 badge mb-5">
+          <span class="w-2 h-2 rounded-full bg-green-500"></span>
+          In-field tested
+        </div>
+        <h1 class="text-5xl md:text-7xl font-extrabold text-white leading-tight mb-6">
+          See Every
+          <span class="block bg-gradient-to-r from-blue-500 via-cyan-400 to-orange-400 bg-clip-text text-transparent">
+            Condition Clearly
+          </span>
+        </h1>
+        <p class="text-lg md:text-xl text-slate-200 leading-relaxed mb-10">
+          Photochromatic sheet insert that adapts to changing light in real time — transform your existing goggles into intelligent optics.
+        </p>
+        <div class="flex flex-col sm:flex-row items-center justify-center gap-4">
+          <a href="#order" class="btn btn-primary">Get Ski Smart Lense</a>
+          <a href="#technology" class="btn btn-ghost">Learn More</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Technology -->
+  <section id="technology" class="py-24 bg-white relative overflow-hidden">
+    <div class="container">
+      <div class="text-center mb-16 fade-in">
+        <h2 class="text-4xl md:text-5xl font-bold mb-4">Intelligent Light <span class="block text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-cyan-500">Adaptation</span></h2>
+        <p class="text-lg md:text-xl text-slate-600 max-w-3xl mx-auto">
+          Our photochromatic technology responds to UV intensity, automatically adjusting tint to deliver optimal visibility across bright bluebird mornings, passing clouds, and low-light powder days.
+        </p>
+      </div>
+      <div class="grid md:grid-cols-3 gap-8">
+        <div class="card p-8 fade-in">
+          <div class="mb-4 font-bold text-2xl text-transparent bg-clip-text bg-gradient-to-br from-yellow-400 to-orange-400">Bright Conditions</div>
+          <p class="text-slate-600">Darkens to 85% tint in intense sunlight, reducing glare and protecting your eyes.</p>
+        </div>
+        <div class="card p-8 fade-in">
+          <div class="mb-4 font-bold text-2xl text-transparent bg-clip-text bg-gradient-to-br from-slate-400 to-slate-600">Variable Light</div>
+          <p class="text-slate-600">Adapts in real time as clouds pass, maintaining consistent visibility.</p>
+        </div>
+        <div class="card p-8 fade-in">
+          <div class="mb-4 font-bold text-2xl text-transparent bg-clip-text bg-gradient-to-br from-blue-400 to-cyan-400">Low Light</div>
+          <p class="text-slate-600">Clears to 15% tint for maximum light transmission in storms and dusk.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Features -->
+  <section id="features" class="py-24 bg-slate-50">
+    <div class="container">
+      <div class="text-center mb-16 fade-in">
+        <h2 class="text-4xl md:text-5xl font-bold mb-4">Engineered for <span class="block text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-cyan-500">Peak Performance</span></h2>
+        <p class="text-lg text-slate-600 max-w-3xl mx-auto">Clarity, speed, and durability—built for the mountain’s most demanding conditions.</p>
+      </div>
+      <div class="grid md:grid-cols-2 gap-8">
+        <div class="card p-8 reveal">
+          <h3 class="text-xl font-bold mb-2">Universal Compatibility</h3>
+          <p class="text-slate-600 mb-3">Fits major goggle brands including Smith, Oakley, Anon—no mods needed.</p>
+          <ul class="text-slate-600 list-disc list-inside space-y-1">
+            <li>Quick DIY adhesive attachment</li>
+            <li>Secure fit system</li>
+           
+          </ul>
+        </div>
+        <div class="card p-8 reveal">
+          <h3 class="text-xl font-bold mb-2">Lightning Fast Response</h3>
+          <p class="text-slate-600 mb-3">Transitions in under 30 seconds to changing light conditions.</p>
+          <ul class="text-slate-600 list-disc list-inside space-y-1">
+            <li>Real-time adaptation</li>
+            <li>No lag time</li>
+            <li>Consistent performance</li>
+          </ul>
+        </div>
+        <div class="card p-8 reveal">
+          <h3 class="text-xl font-bold mb-2">Crystal Clear Optics</h3>
+          <p class="text-slate-600 mb-3">Premium anti-fog coating and distortion-free lens tech for razor-sharp vision.</p>
+          <ul class="text-slate-600 list-disc list-inside space-y-1">
+            <li>Anti-scratch coating</li>
+            <li>Hydrophobic treatment</li>
+          </ul>
+        </div>
+        <div class="card p-8 reveal">
+          <h3 class="text-xl font-bold mb-2">All-Condition Ready</h3>
+          <p class="text-slate-600 mb-3">Engineered to perform from -20°C to +20°C in any weather.</p>
+          <ul class="text-slate-600 list-disc list-inside space-y-1">
+            <li>Temperature stable</li>
+            <li>Weather resistant</li>
+            <li>Durable construction</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Ski Scenery Gallery (no people, goggle-like perspective) -->
+<!-- Ski Scenery Gallery (uniform 2x2 grid, no people) -->
+<section id="gallery" class="py-24 bg-white">
+  <div class="container">
+    <div class="text-center mb-12 fade-in">
+      <h2 class="text-4xl md:text-5xl font-bold mb-4">See the Line</h2>
+      <p class="text-lg text-slate-600 max-w-3xl mx-auto">
+        Perfect for all variable light conditions
+      </p>
+    </div>
+    <!-- 2x2 grid with fixed image sizes -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <img class="w-full h-64 object-cover rounded-xl shadow-md fade-in" 
+           alt="Snowy slope view from trail" 
+           src="https://images.unsplash.com/photo-1605540436563-5bca919ae766?ixlib=rb-4.0.3&auto=format&fit=crop&w=1600&q=80"/>
+      <img class="w-full h-64 object-cover rounded-xl shadow-md fade-in" 
+           alt="Mountain ridge from goggles" 
+           src="https://images.unsplash.com/photo-1548777123-e216912df7d8?ixlib=rb-4.0.3&auto=format&fit=crop&w=1600&q=80"/>
+      <img class="w-full h-64 object-cover rounded-xl shadow-md fade-in" 
+           alt="Alpine valley perspective" 
+           src="https://images.unsplash.com/photo-1506905925346-21bda4d32df4?ixlib=rb-4.0.3&auto=format&fit=crop&w=1600&q=80"/>
+      <img class="w-full h-64 object-cover rounded-xl shadow-md fade-in" 
+           alt="Deep snow trail and trees" 
+           src="https://images.unsplash.com/photo-1418290232843-5d7a0bd93f7d?ixlib=rb-4.0.3&auto=format&fit=crop&w=1600&q=80"/>
+    </div>
+  </div>
+</section>
+
+  <!-- Installation -->
+  <section id="installation" class="py-24 bg-slate-50">
+    <div class="container">
+      <div class="text-center mb-16 fade-in">
+        <h2 class="text-4xl md:text-5xl font-bold mb-4">Install in <span class="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-cyan-500">60 Seconds</span></h2>
+        <p class="text-lg text-slate-600 max-w-3xl mx-auto">No tools required. Peel-and-stick adhesive makes setup effortless.</p>
+      </div>
+      <!-- YouTube video placeholder: replace REPLACE_WITH_VIDEO_ID with your YouTube ID -->
+      <div class="max-w-3xl mx-auto mb-12 fade-in">
+        <div class="video-wrapper rounded-xl overflow-hidden shadow-md" role="region" aria-label="Installation video">
+          <button class="video-placeholder w-full h-full block text-white flex items-center justify-center" data-youtube-id="REPLACE_WITH_VIDEO_ID" style="background-image:url('https://img.youtube.com/vi/REPLACE_WITH_VIDEO_ID/hqdefault.jpg');">
+            <span class="sr-only">Play installation video</span>
+            <svg width="72" height="72" viewBox="0 0 72 72" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><circle cx="36" cy="36" r="36" fill="rgba(0,0,0,0.45)"/><path d="M30 26L46 36L30 46V26Z" fill="#fff"/></svg>
+          </button>
+        </div>
+      </div>
+      <div class="grid md:grid-cols-4 gap-8">
+        <div class="card p-8 reveal">
+          <div class="text-5xl font-bold text-transparent bg-clip-text bg-gradient-to-br from-blue-500 to-cyan-400 mb-4">01</div>
+          <h3 class="text-lg font-bold mb-2">Remove Current Lens</h3>
+          <p class="text-slate-600">Follow the manufacturer’s instructions to remove your goggle lens.</p>
+        </div>
+        <div class="card p-8 reveal">
+          <div class="text-5xl font-bold text-transparent bg-clip-text bg-gradient-to-br from-blue-500 to-cyan-400 mb-4">02</div>
+          <h3 class="text-lg font-bold mb-2">Peel Adhesive Circle</h3>
+          <p class="text-slate-600">Remove protective backing to expose the adhesive edge.</p>
+        </div>
+        <div class="card p-8 reveal">
+          <div class="text-5xl font-bold text-transparent bg-clip-text bg-gradient-to-br from-blue-500 to-cyan-400 mb-4">03</div>
+          <h3 class="text-lg font-bold mb-2">Position & Press</h3>
+          <p class="text-slate-600">Align the insert to the inner frame surface; press firmly around edges.</p>
+        </div>
+        <div class="card p-8 reveal">
+          <div class="text-5xl font-bold text-transparent bg-clip-text bg-gradient-to-br from-blue-500 to-cyan-400 mb-4">04</div>
+          <h3 class="text-lg font-bold mb-2">Reinstall Lens</h3>
+          <p class="text-slate-600">Seat your original lens back into place and secure mounting points.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Order -->
+  <section id="order" class="py-24 bg-white relative overflow-hidden">
+    <div class="absolute inset-0 bg-gradient-to-br from-blue-50 via-white to-cyan-50"></div>
+    <div class="container relative z-10">
+      <div class="text-center mb-14 fade-in">
+        <h2 class="text-4xl md:text-5xl font-bold mb-4">Pre-Order Ski Smart Lense</h2>
+        <p class="text-lg text-slate-600 max-w-3xl mx-auto">Tell us what you want. We’ll confirm compatibility and timing.</p>
+      </div>
+      <form id="order-form" class="card p-8 max-w-3xl mx-auto space-y-6 reveal" novalidate>
+        <div>
+          <label for="name" class="block text-sm font-medium text-slate-700 mb-2">Name</label>
+          <input id="name" name="name" type="text" class="input" placeholder="Your name" required />
+          <p class="mt-1 text-sm text-red-600 hidden" data-error-for="name">Please enter your name.</p>
+        </div>
+        <div>
+          <label for="email" class="block text-sm font-medium text-slate-700 mb-2">Email</label>
+          <input id="email" name="email" type="email" class="input" placeholder="you@example.com" required />
+          <p class="mt-1 text-sm text-red-600 hidden" data-error-for="email">Please enter a valid email.</p>
+        </div>
+        <div>
+          <label for="brand" class="block text-sm font-medium text-slate-700 mb-2">Goggle Brand</label>
+          <input id="brand" name="brand" type="text" class="input" placeholder="e.g., Smith, Oakley, Anon" />
+        </div>
+        <div class="grid md:grid-cols-3 gap-4">
+          <div>
+            <label for="base-tint" class="block text-sm font-medium text-slate-700 mb-2">Base Tint</label>
+            <select id="base-tint" name="base-tint" class="select">
+              <option value="">Select base tint</option>
+              <option value="low">Low (clears to ~15%)</option>
+              <option value="variable">Variable (balanced)</option>
+              <option value="high">High (darkens to ~85%)</option>
+            </select>
+          </div>
+          <div>
+            <label for="size" class="block text-sm font-medium text-slate-700 mb-2">Size</label>
+            <select id="size" name="size" class="select">
+              <option value="">Select size</option>
+              <option value="S">Small</option>
+              <option value="M">Medium</option>
+              <option value="L">Large</option>
+              <option value="XL">XL</option>
+            </select>
+          </div>
+          <div>
+            <label for="use-case" class="block text-sm font-medium text-slate-700 mb-2">Primary Use</label>
+            <select id="use-case" name="use-case" class="select">
+              <option value="">Select use</option>
+              <option value="resort">Resort</option>
+              <option value="backcountry">Backcountry</option>
+              <option value="racing">Racing</option>
+                        </select>
+          </div>
+        </div>
+        <div>
+          <label for="message" class="block text-sm font-medium text-slate-700 mb-2">Message</label>
+          <textarea id="message" name="message" rows="4" class="textarea" placeholder="Optional notes — prescription insert, fit questions, timing..."></textarea>
+        </div>
+        <div class="flex flex-col sm:flex-row items-center justify-between gap-4">
+          <button type="button" id="paypal-pay" class="btn paypal-button w-full sm:w-auto">Pre-Order with PayPal</button>
+          <button type="submit" class="btn btn-primary w-full sm:w-auto">Submit Pre-Order</button>
+        </div>
+      </form>
+
+      <div id="toast" class="toast" role="alert" aria-live="polite">Thanks! We’ll be in touch soon.</div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="bg-slate-900 text-white py-12">
+    <div class="container text-center">
+      <div class="flex items-center justify-center gap-2 mb-4">
+        <span class="inline-block w-6 h-6 rounded bg-gradient-to-r from-blue-500 to-cyan-400"></span>
+        <span class="text-lg font-bold">Ski Smart Lense</span>
+      </div>
+      <p class="text-slate-400">Adaptive photochromatic technology for optimal mountain vision.</p>
+      <p class="text-slate-500 text-sm mt-4">© 2025 Ski Smart Lense. All rights reserved.</p>
+    </div>
+  </footer>
+
+  <!-- Scripts -->
+  <script>
+    // Intersection Observer for fade-in/reveal
+    (function() {
+      const observer = new IntersectionObserver((entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('visible');
+            observer.unobserve(entry.target);
+          }
+        });
+      }, { rootMargin: '0px 0px -10% 0px', threshold: 0.15 });
+
+      document.querySelectorAll('.fade-in, .reveal').forEach(el => observer.observe(el));
+    })();
+
+    // PayPal button handler: constructs a form and posts to PayPal
+    (function() {
+      const paypalBtn = document.getElementById('paypal-pay');
+      if (!paypalBtn) return;
+      paypalBtn.addEventListener('click', () => {
+        const fields = {
+          business: 'franciswolenski@gmail.com',
+          cmd: '_xclick',
+          item_name: 'SkiSmartLense Pre-Order',
+          amount: '20.00',
+          currency_code: 'USD'
+        };
+
+        const f = document.createElement('form');
+        f.action = 'https://www.paypal.com/cgi-bin/webscr';
+        f.method = 'post';
+        f.target = '_top';
+
+        Object.keys(fields).forEach(k => {
+          const i = document.createElement('input');
+          i.type = 'hidden';
+          i.name = k;
+          i.value = fields[k];
+          f.appendChild(i);
+        });
+
+        document.body.appendChild(f);
+        f.submit();
+      });
+    })();
+
+    // Lightweight form validation + toast
+    (function() {
+      const form = document.getElementById('order-form');
+      const toast = document.getElementById('toast');
+
+      function showToast(message, ok = true) {
+        toast.textContent = message;
+        toast.style.background = ok ? '#0f172a' : '#b91c1c';
+        toast.classList.add('show');
+        setTimeout(() => toast.classList.remove('show'), 2600);
+      }
+
+      function setError(id, hasError) {
+        const input = document.getElementById(id);
+        const error = document.querySelector(`[data-error-for="${id}"]`);
+        if (!input) return;
+        if (hasError) {
+          input.classList.add('error');
+          if (error) error.classList.remove('hidden');
+        } else {
+          input.classList.remove('error');
+          if (error) error.classList.add('hidden');
+        }
+      }
+
+      function isValidEmail(value) {
+        return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+      }
+
+      form.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const name = document.getElementById('name').value.trim();
+        const email = document.getElementById('email').value.trim();
+
+        let ok = true;
+        if (!name) { setError('name', true); ok = false; } else { setError('name', false); }
+        if (!isValidEmail(email)) { setError('email', true); ok = false; } else { setError('email', false); }
+
+        if (!ok) {
+          showToast('Please fix the highlighted fields.', false);
+          return;
+        }
+
+        // Build a prefilled email to William and open the user's mail client.
+        const brand = document.getElementById('brand') ? document.getElementById('brand').value.trim() : '';
+        const baseTint = document.getElementById('base-tint') ? document.getElementById('base-tint').value : '';
+        const size = document.getElementById('size') ? document.getElementById('size').value : '';
+        const useCase = document.getElementById('use-case') ? document.getElementById('use-case').value : '';
+        const message = document.getElementById('message') ? document.getElementById('message').value.trim() : '';
+
+        const bodyLines = [];
+        bodyLines.push(`Name: ${name}`);
+        bodyLines.push(`Email: ${email}`);
+        if (brand) bodyLines.push(`Goggle Brand: ${brand}`);
+        if (size) bodyLines.push(`Size: ${size}`);
+        if (baseTint) bodyLines.push(`Base Tint: ${baseTint}`);
+        if (useCase) bodyLines.push(`Primary Use: ${useCase}`);
+        if (message) bodyLines.push(`Message: ${message}`);
+
+        const body = bodyLines.join('\n');
+        const to = 'william.s.wolenski@gmail.com';
+        const subject = 'Pre-Order: SkiSmartLense';
+
+        // Open Gmail web compose with prefilled to/subject/body in a new tab.
+        // If the popup is blocked, fall back to a mailto: link to open the user's default mail client.
+        const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(to)}&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+        const mailto = `mailto:${to}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+        const win = window.open(gmailUrl, '_blank');
+        if (!win) {
+          // Popup blocked — open default mail client in same window
+          window.location.href = mailto;
+          showToast('Opening default email client...', true);
+        } else {
+          try { win.focus(); } catch (e) {}
+          showToast('Opening Gmail compose...', true);
+        }
+      });
+
+      ['name','email'].forEach(id => {
+        const el = document.getElementById(id);
+        el.addEventListener('input', () => setError(id, false));
+      });
+    })();
+  </script>
+  <script>
+    // Lazy-load YouTube iframe when the placeholder is clicked.
+    (function() {
+      document.addEventListener('click', function (e) {
+        const btn = e.target.closest && e.target.closest('.video-placeholder');
+        if (!btn) return;
+        const id = btn.getAttribute('data-youtube-id');
+        if (!id || id === 'REPLACE_WITH_VIDEO_ID') {
+          // If no ID set, open YouTube homepage or do nothing
+          window.open('https://www.youtube.com', '_blank');
+          return;
+        }
+        const iframe = document.createElement('iframe');
+        iframe.src = 'https://www.youtube.com/embed/' + encodeURIComponent(id) + '?autoplay=1&rel=0';
+        iframe.title = 'Installation video';
+        iframe.allow = 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture';
+        iframe.setAttribute('allowfullscreen', '');
+        iframe.style.width = '100%';
+        iframe.style.height = '100%';
+        const wrapper = btn.parentNode;
+        // Remove button and add iframe
+        wrapper.innerHTML = '';
+        wrapper.appendChild(iframe);
+      });
+    })();
+  </script>
+  
+</body>
+</html>

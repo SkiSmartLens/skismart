@@ -94,7 +94,7 @@
       padding: 0.75rem 1rem;
       outline: none;
       transition: box-shadow 200ms ease, border-color 200ms ease;
-      background: #fff;
+      background: #fff; 
     }
     .input:focus, .textarea:focus, .select:focus {
       border-color: #3b82f6;
@@ -230,7 +230,7 @@
 
   <!-- Hero -->
   <section id="hero" class="relative min-h-[90vh] flex items-center justify-center overflow-hidden">
-    <div class="absolute inset-0 bg-cover bg-center" style="background-image:url('https://images.unsplash.com/photo-1551698618-1dfe5d97d256?auto=format&fit=crop&w=1920&q=80'); transform:scale(1.1);"></div>
+    <div class="absolute inset-0 bg-cover bg-center" style="background-image:url('https://images.unsplash.com/photo-1551698618-1dfe5d97d256?auto=format&fit=crop&w=1920&q=80'); transform:scale(1.1);"><[...]
     <div class="absolute inset-0 bg-gradient-to-b from-slate-900/70 via-slate-900/40 to-slate-900/70"></div>
     <div class="relative z-10 container">
       <div class="max-w-4xl mx-auto text-center fade-in">
@@ -261,14 +261,14 @@
       <div class="text-center mb-16 fade-in">
         <h2 class="text-4xl md:text-5xl font-bold mb-4">Intelligent Light <span class="block text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-cyan-500">Adaptation</span></h2>
         <p class="text-lg md:text-xl text-slate-600 max-w-3xl mx-auto">
-          Our photochromatic technology responds to UV intensity, automatically adjusting tint to deliver optimal visibility across bright bluebird mornings, passing clouds, and low-light powder days.
+          Our photochromatic technology responds to UV intensity, automatically adjusting tint to deliver optimal visibility across bright bluebird mornings, passing clouds, and low-light powder days.[...]
         </p>
       </div>
       <div class="grid md:grid-cols-3 gap-8">
         <div class="card p-8 fade-in">
           <div class="mb-4 font-bold text-2xl text-transparent bg-clip-text bg-gradient-to-br from-yellow-400 to-orange-400">Bright Conditions</div>
           <p class="text-slate-600">Darkens to 85% tint in intense sunlight, reducing glare and protecting your eyes.</p>
-        </div>
+        </div> 
         <div class="card p-8 fade-in">
           <div class="mb-4 font-bold text-2xl text-transparent bg-clip-text bg-gradient-to-br from-slate-400 to-slate-600">Variable Light</div>
           <p class="text-slate-600">Adapts in real time as clouds pass, maintaining consistent visibility.</p>
@@ -399,7 +399,7 @@
           <p class="text-slate-600">Seat your original lens back into place and secure mounting points.</p>
         </div>
       </div>
-    </div>
+    </div>   
   </section>
 
   <!-- Order -->
@@ -421,10 +421,9 @@
           <input id="email" name="email" type="email" class="input" placeholder="you@example.com" required />
           <p class="mt-1 text-sm text-red-600 hidden" data-error-for="email">Please enter a valid email.</p>
         </div>
-        <div>
-          <label for="brand" class="block text-sm font-medium text-slate-700 mb-2">Goggle Brand</label>
-          <input id="brand" name="brand" type="text" class="input" placeholder="e.g., Smith, Oakley, Anon" />
-        </div>
+
+        <!-- Replaced free-text brand input with a select (moved into the grid below) -->
+
         <div class="grid md:grid-cols-3 gap-4">
           <div>
             <label for="base-tint" class="block text-sm font-medium text-slate-700 mb-2">Base Tint</label>
@@ -446,13 +445,18 @@
             </select>
           </div>
           <div>
-            <label for="use-case" class="block text-sm font-medium text-slate-700 mb-2">Primary Use</label>
-            <select id="use-case" name="use-case" class="select">
-              <option value="">Select use</option>
-              <option value="resort">Resort</option>
-              <option value="backcountry">Backcountry</option>
-              <option value="racing">Racing</option>
-                        </select>
+            <label for="brand" class="block text-sm font-medium text-slate-700 mb-2">Goggle Brand</label>
+            <select id="brand" name="brand" class="select">
+              <option value="">Select brand</option>
+              <option value="Smith">Smith</option>
+              <option value="Oakley">Oakley</option>
+              <option value="Anon">Anon</option>
+              <option value="Giro">Giro</option>
+              <option value="Bolle">Bolle</option>
+              <option value="POC">POC</option>
+              <option value="Scott">Scott</option>
+              <option value="Other">Other</option>
+            </select>
           </div>
         </div>
         <div>
@@ -575,7 +579,6 @@
         const brand = document.getElementById('brand') ? document.getElementById('brand').value.trim() : '';
         const baseTint = document.getElementById('base-tint') ? document.getElementById('base-tint').value : '';
         const size = document.getElementById('size') ? document.getElementById('size').value : '';
-        const useCase = document.getElementById('use-case') ? document.getElementById('use-case').value : '';
         const message = document.getElementById('message') ? document.getElementById('message').value.trim() : '';
 
         const bodyLines = [];
@@ -584,7 +587,6 @@
         if (brand) bodyLines.push(`Goggle Brand: ${brand}`);
         if (size) bodyLines.push(`Size: ${size}`);
         if (baseTint) bodyLines.push(`Base Tint: ${baseTint}`);
-        if (useCase) bodyLines.push(`Primary Use: ${useCase}`);
         if (message) bodyLines.push(`Message: ${message}`);
 
         const body = bodyLines.join('\n');

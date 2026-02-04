@@ -162,8 +162,8 @@
       padding: 0 1.5rem;
     }
    .paypal-button {
-    background-color: #0070ba; /* PayPal blue */
-    color: white;
+    background: linear-gradient(90deg, var(--brand-start), var(--brand-end));
+    color: #fff;
     border: none;
     padding: 12px 24px;
     font-size: 16px;
@@ -178,8 +178,36 @@
   }
 
   .paypal-button:hover {
-    background-color: #005ea6;
+    filter: brightness(1.08);
+    transform: translateY(-1px);
   }
+
+  .card-pay-button {
+    background: linear-gradient(90deg, var(--brand-start), var(--brand-end));
+    color: #fff;
+    border: none;
+    padding: 12px 20px;
+    font-size: 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.6rem;
+    box-shadow: 0 8px 24px rgba(2,6,23,0.45);
+    transition: transform 160ms var(--ease), filter 160ms var(--ease);
+  }
+
+  .card-pay-button:hover { transform: translateY(-1px); filter: brightness(1.08); }
+
+  .card-logos { display: inline-flex; gap: 6px; align-items: center; font-weight: 600; }
+  .card-logos .card-icon { width: 28px; height: 18px; display: inline-block; }
+
+  .card-modal { position: fixed; inset: 0; display: none; align-items: center; justify-content: center; background: rgba(2,6,23,0.5); z-index: 60; }
+  .card-modal.open { display: flex; }
+  .card-modal .modal-inner { background: #fff; color: #0f172a; border-radius: 12px; padding: 20px; width: min(480px, 94%); box-shadow: 0 10px 40px rgba(2,6,23,0.35); position: relative; }
+  .card-form .field { margin-bottom: 12px; }
+  .card-form input { width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #d1d5db; }
+  .card-modal-close { background: transparent; border: none; font-size: 20px; cursor: pointer; position: absolute; top: 10px; right: 12px; }
 
   form {
     background: transparent;
@@ -465,9 +493,31 @@
         </div>
         <div class="flex flex-col sm:flex-row items-center justify-between gap-4">
           <button type="button" id="paypal-pay" class="btn paypal-button w-full sm:w-auto">Pre-Order with PayPal</button>
+          <button type="button" id="card-pay" class="btn card-pay-button w-full sm:w-auto">
+            <span class="card-logos">
+              <svg class="card-icon" viewBox="0 0 36 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect width="36" height="24" rx="3" fill="#fff"/><path d="M2 6h32v3H2z" fill="#e5e7eb"/></svg>
+              <span>Visa · Mastercard</span>
+            </span>
+            <span style="margin-left:6px;">Pay with Card</span>
+          </button>
           <button type="submit" class="btn btn-primary w-full sm:w-auto">Submit Pre-Order</button>
         </div>
       </form>
+
+      <!-- Card payment modal (placeholder) -->
+      <div id="card-modal" class="card-modal" aria-hidden="true">
+        <div class="modal-inner" role="dialog" aria-modal="true" aria-labelledby="card-modal-title">
+          <button id="card-modal-close" class="card-modal-close" aria-label="Close">×</button>
+          <h3 id="card-modal-title" class="text-lg font-semibold mb-2">Pay with Card</h3>
+          <p class="text-sm text-slate-600 mb-4">Card payments should be processed via a secure server-side gateway (Stripe, Braintree, etc.). This form is a local placeholder — do not collect card details in plain HTML for production.</p>
+          <form id="card-pay-form" class="card-form">
+            <div class="field"><label class="text-sm">Name on card</label><input name="card-name" autocomplete="cc-name" required></div>
+            <div class="field"><label class="text-sm">Card number</label><input name="card-number" inputmode="numeric" placeholder="•••• •••• •••• ••••" autocomplete="cc-number" required></div>
+            <div style="display:flex;gap:8px;"><div style="flex:1"><label class="text-sm">Expiry</label><input name="card-exp" placeholder="MM/YY" autocomplete="cc-exp" required></div><div style="width:120px"><label class="text-sm">CVC</label><input name="card-cvc" inputmode="numeric" autocomplete="cc-csc" required></div></div>
+            <div style="text-align:right;margin-top:12px;"><button type="submit" class="btn btn-primary">Pay now</button></div>
+          </form>
+        </div>
+      </div>
 
       <div id="toast" class="toast" role="alert" aria-live="polite">Thanks! We’ll be in touch soon.</div>
     </div>
@@ -530,6 +580,47 @@
         document.body.appendChild(f);
         f.submit();
       });
+    })();
+
+    // Card payment UI (local placeholder) — opens a modal and simulates a card flow
+    (function() {
+      const cardBtn = document.getElementById('card-pay');
+      const modal = document.getElementById('card-modal');
+      const close = document.getElementById('card-modal-close');
+      const cardForm = document.getElementById('card-pay-form');
+      if (!cardBtn || !modal) return;
+
+      cardBtn.addEventListener('click', () => {
+        modal.classList.add('open');
+        modal.setAttribute('aria-hidden', 'false');
+      });
+
+      close && close.addEventListener('click', () => {
+        modal.classList.remove('open');
+        modal.setAttribute('aria-hidden', 'true');
+      });
+
+      modal.addEventListener('click', (e) => {
+        if (e.target === modal) {
+          modal.classList.remove('open');
+          modal.setAttribute('aria-hidden', 'true');
+        }
+      });
+
+      if (cardForm) {
+        cardForm.addEventListener('submit', function(e) {
+          e.preventDefault();
+          const toast = document.getElementById('toast');
+          if (toast) {
+            toast.textContent = 'Card payment simulated. Integrate a server-side gateway (e.g. Stripe) to accept cards.';
+            toast.style.background = '#0f172a';
+            toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), 2600);
+          }
+          modal.classList.remove('open');
+          modal.setAttribute('aria-hidden', 'true');
+        });
+      }
     })();
 
     // Lightweight form validation + toast

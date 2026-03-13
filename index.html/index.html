@@ -21,7 +21,7 @@
     .fade-in {
       opacity: 0;
       transform: translateY(30px);
-      transition: opacity 800ms ease-out, transform 800ms ease-out;
+      transition: opacity 800ms var(--ease), transform 800ms var(--ease);
       will-change: opacity, transform;
     }
     .fade-in.visible {
@@ -31,7 +31,8 @@
     .reveal {
       opacity: 0;
       transform: translateY(24px) scale(0.98);
-      transition: opacity 700ms ease-out, transform 700ms ease-out;
+      transition: opacity 700ms var(--ease), transform 700ms var(--ease);
+      will-change: opacity, transform;
     }
     .reveal.visible {
       opacity: 1;
@@ -282,7 +283,7 @@
   <section id="hero" class="relative min-h-[90vh] flex items-center justify-center overflow-hidden">
     <div id="hero-bg" class="absolute inset-0 bg-cover bg-center" style="background-image:url('https://images.unsplash.com/photo-1551698618-1dfe5d97d256?auto=format&fit=crop&w=1920&q=80'); transform:scale(1.1); will-change: transform;"><[...]
     <div class="absolute inset-0 bg-gradient-to-b from-slate-900/70 via-slate-900/40 to-slate-900/70"></div>
-    <div class="relative z-10 container">
+    <div class="relative z-10 container" style="will-change: transform;">
       <div class="max-w-4xl mx-auto text-center fade-in">
         <div class="inline-flex items-center gap-2 badge mb-5">
           <span class="w-2 h-2 rounded-full bg-green-500"></span>
@@ -360,7 +361,7 @@
             border-radius:12px;
             overflow:hidden;
             filter:brightness(0.64);
-            transition:filter 0.2s ease;
+            transition:filter 0.5s ease;
          ">
 
 </section>
@@ -785,15 +786,25 @@
     })();
   </script>
   <script>
-    // Parallax scrolling for hero background
+    // Parallax scrolling for hero background and content
     (function() {
       const heroBg = document.getElementById('hero-bg');
-      if (!heroBg) return;
+      const heroContent = document.querySelector('#hero .relative');
+      if (!heroBg || !heroContent) return;
 
+      let ticking = false;
       window.addEventListener('scroll', function() {
-        const scrolled = window.pageYOffset;
-        const rate = scrolled * -0.5;
-        heroBg.style.transform = 'translateY(' + rate + 'px) scale(1.1)';
+        if (!ticking) {
+          requestAnimationFrame(function() {
+            const scrolled = window.pageYOffset;
+            const rateBg = scrolled * -0.5;
+            heroBg.style.transform = 'translateY(' + rateBg + 'px) scale(1.1)';
+            const rateContent = scrolled * -0.8;
+            heroContent.style.transform = 'translateY(' + rateContent + 'px)';
+            ticking = false;
+          });
+          ticking = true;
+        }
       });
     })();
   </script>
@@ -833,6 +844,38 @@
         // Remove button and add iframe
         wrapper.innerHTML = '';
         wrapper.appendChild(iframe);
+      });
+    })();
+  </script>
+  <script>
+    // Magnetic button effect
+    (function() {
+      const buttons = document.querySelectorAll('.btn');
+      const maxDistance = 80;
+      const strength = 0.4;
+
+      buttons.forEach(btn => {
+        btn.addEventListener('mousemove', (e) => {
+          const rect = btn.getBoundingClientRect();
+          const centerX = rect.left + rect.width / 2;
+          const centerY = rect.top + rect.height / 2;
+          const deltaX = e.clientX - centerX;
+          const deltaY = e.clientY - centerY;
+          const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+
+          if (distance < maxDistance) {
+            const factor = (maxDistance - distance) / maxDistance * strength;
+            const moveX = deltaX * factor;
+            const moveY = deltaY * factor;
+            btn.style.transform = `translate(${moveX}px, ${moveY}px)`;
+          } else {
+            btn.style.transform = '';
+          }
+        });
+
+        btn.addEventListener('mouseleave', () => {
+          btn.style.transform = '';
+        });
       });
     })();
   </script>

@@ -250,7 +250,41 @@
 }.nav-link.active {
   text-decoration: underline;
   color: #3b82f6;
-}</style>
+}
+
+/* Stickman cursor follower */
+#stickman {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 64px;
+  height: 64px;
+  pointer-events: none;
+  z-index: 9999;
+  transform: translate(-50%, -50%) rotate(0deg);
+  transition: transform 120ms ease-out;
+  will-change: transform;
+}
+
+#stickman svg {
+  width: 100%;
+  height: 100%;
+}
+#stickman .stick {
+  stroke: #0b3c91;
+  stroke-width: 3;
+  stroke-linecap: round;
+  fill: none;
+}
+#stickman .ski {
+  stroke: #0b3c91;
+  stroke-width: 4;
+  stroke-linecap: round;
+}
+
+
+
+</style>
 </head>
 
 <body class="ordernowbutton">
@@ -879,7 +913,86 @@
       });
     })();
   </script>
-  
+
+  <!-- Cursor-following stickman -->
+  <div id="stickman" aria-hidden="true">
+    <img src="https://cdn-icons-png.flaticon.com/512/58/58155.png" alt="Stickman" />
+  </div>
+
+<script>
+  // Skier follows cursor with smooth lag and rotates toward movement direction.
+  // Starts off-screen in the top-right, then glides into position on load.
+
+  (function () {
+    const stickman = document.getElementById('stickman');
+    if (!stickman) return;
+
+    /* -----------------------------
+       Intro Animation Setup
+    ------------------------------*/
+    const startOffset = 96;
+    const startX = window.innerWidth + startOffset;
+    const startY = -startOffset;
+
+    const introTargetX = window.innerWidth * 0.7;
+    const introTargetY = window.innerHeight * 0.25;
+
+    let currentX = startX;
+    let currentY = startY;
+
+    let cursorX = introTargetX;
+    let cursorY = introTargetY;
+
+    let introActive = true;
+
+    /* -----------------------------
+       Behavior Tuning
+    ------------------------------*/
+    const stiffness = 0.09;     // lower = more lag
+    const rightOffset = -100;    // skier stays LEFT of cursor
+    const downOffset = -40;      // skier stays BELOW cursor
+
+    /* -----------------------------
+       Cursor Tracking
+    ------------------------------*/
+    window.addEventListener('mousemove', (e) => {
+      cursorX = e.clientX;
+      cursorY = e.clientY;
+    });
+
+    /* -----------------------------
+       Animation Loop
+    ------------------------------*/
+    function animate() {
+      // During intro, move toward intro target
+      const desiredX = introActive ? introTargetX : cursorX + rightOffset;
+      const desiredY = introActive ? introTargetY : cursorY + downOffset;
+
+      // Smooth follow (lag)
+      currentX += (desiredX - currentX) * stiffness;
+      currentY += (desiredY - currentY) * stiffness;
+
+      // End intro when close enough
+      if (introActive) {
+        const dist = Math.hypot(introTargetX - currentX, introTargetY - currentY);
+        if (dist < 12) introActive = false;
+      }
+
+      // Rotate skier to face cursor
+      const angle = Math.atan2(cursorY - currentY, cursorX - currentX) * (180 / Math.PI);
+
+      // Apply position + rotation
+      stickman.style.left = `${currentX}px`;
+      stickman.style.top = `${currentY}px`;
+      stickman.style.transform = `translate(-50%, -50%) rotate(${angle + 145}deg) scaleY(-1)`;
+
+      requestAnimationFrame(animate);
+    }
+
+    requestAnimationFrame(animate);
+  })();
+</script>
+
 </body>
 
 </html>

@@ -881,6 +881,8 @@
       });
     })();
   </script>
+
+
   <script>
     // Magnetic button effect
     (function() {
@@ -914,85 +916,125 @@
     })();
   </script>
 
+
+
+
   <!-- Cursor-following stickman -->
   <div id="stickman" aria-hidden="true">
     <img src="https://cdn-icons-png.flaticon.com/512/58/58155.png" alt="Stickman" />
   </div>
 
 <script>
-  // Skier follows cursor with smooth lag and rotates toward movement direction.
-  // Starts off-screen in the top-right, then glides into position on load.
+(function () {
+  const stickman = document.getElementById('stickman');
+  if (!stickman) return;
 
-  (function () {
-    const stickman = document.getElementById('stickman');
-    if (!stickman) return;
+  /* -----------------------------
+     Intro Animation Setup
+  ------------------------------*/
+  const startOffset = 96;
+  const startX = window.innerWidth + startOffset;
+  const startY = -startOffset;
+
+  const introTargetX = window.innerWidth * 0.3; // start LEFT
+  const introTargetY = window.innerHeight * 0.25;
+
+  let currentX = startX;
+  let currentY = startY;
+
+  let cursorX = introTargetX;
+  let cursorY = introTargetY;
+
+  let introActive = true;
+
+  /* -----------------------------
+     Behavior Tuning
+  ------------------------------*/
+  const stiffness = 0.09;
+  let side = "left"; // "left" or "right"
+  const offsetX = 120; // distance from cursor
+  const offsetY = -40; // vertical offset
+
+  /* -----------------------------
+     Crossover Detection
+  ------------------------------*/
+  let lastCursorX = cursorX;
+
+  window.addEventListener("mousemove", (e) => {
+    cursorX = e.clientX;
+    cursorY = e.clientY;
+  });
+
+  /* -----------------------------
+     Animation Loop
+  ------------------------------*/
+  function animate() {
 
     /* -----------------------------
-       Intro Animation Setup
+       Detect fast crossover
     ------------------------------*/
-    const startOffset = 96;
-    const startX = window.innerWidth + startOffset;
-    const startY = -startOffset;
+    const cursorDelta = cursorX - lastCursorX;
+    const skierBehind = Math.abs(cursorX - currentX) > 80;
 
-    const introTargetX = window.innerWidth * 0.7;
-    const introTargetY = window.innerHeight * 0.25;
-
-    let currentX = startX;
-    let currentY = startY;
-
-    let cursorX = introTargetX;
-    let cursorY = introTargetY;
-
-    let introActive = true;
-
-    /* -----------------------------
-       Behavior Tuning
-    ------------------------------*/
-    const stiffness = 0.09;     // lower = more lag
-    const rightOffset = -100;    // skier stays LEFT of cursor
-    const downOffset = -40;      // skier stays BELOW cursor
-
-    /* -----------------------------
-       Cursor Tracking
-    ------------------------------*/
-    window.addEventListener('mousemove', (e) => {
-      cursorX = e.clientX;
-      cursorY = e.clientY;
-    });
-
-    /* -----------------------------
-       Animation Loop
-    ------------------------------*/
-    function animate() {
-      // During intro, move toward intro target
-      const desiredX = introActive ? introTargetX : cursorX + rightOffset;
-      const desiredY = introActive ? introTargetY : cursorY + downOffset;
-
-      // Smooth follow (lag)
-      currentX += (desiredX - currentX) * stiffness;
-      currentY += (desiredY - currentY) * stiffness;
-
-      // End intro when close enough
-      if (introActive) {
-        const dist = Math.hypot(introTargetX - currentX, introTargetY - currentY);
-        if (dist < 12) introActive = false;
+    if (skierBehind && Math.abs(cursorDelta) > 50) {
+      if (cursorDelta > 0 && side === "left") {
+        side = "right";
+      } else if (cursorDelta < 0 && side === "right") {
+        side = "left";
       }
-
-      // Rotate skier to face cursor
-      const angle = Math.atan2(cursorY - currentY, cursorX - currentX) * (180 / Math.PI);
-
-      // Apply position + rotation
-      stickman.style.left = `${currentX}px`;
-      stickman.style.top = `${currentY}px`;
-      stickman.style.transform = `translate(-50%, -50%) rotate(${angle + 145}deg) scaleY(-1)`;
-
-      requestAnimationFrame(animate);
     }
 
-    requestAnimationFrame(animate);
-  })();
-</script>
+    lastCursorX = cursorX;
 
+    /* -----------------------------
+       Determine target position
+    ------------------------------*/
+    const desiredX =
+      side === "left"
+        ? cursorX - offsetX
+        : cursorX + offsetX;
+
+    const desiredY = cursorY + offsetY;
+
+    /* -----------------------------
+       Smooth follow
+    ------------------------------*/
+    currentX += (desiredX - currentX) * stiffness;
+    currentY += (desiredY - currentY) * stiffness;
+
+    /* -----------------------------
+       Rotate toward cursor
+    ------------------------------*/
+    const angle =
+      Math.atan2(cursorY - currentY, cursorX - currentX) * (180 / Math.PI);
+
+    /* -----------------------------
+       Correct rotation for each side
+    ------------------------------*/
+    const flip = side === "left" ? -1 : 1;
+
+    // Base rotation offset:
+    // -10° counter-clockwise ALWAYS
+    // + side-dependent correction so skis point correctly
+    const rotationOffset = side === "left"
+      ? -10 - 10   // left side: original -10 plus your CCW tilt
+      : 170 - -50;  // right side: original 170 minus 10 for CCW tilt
+
+    /* -----------------------------
+       Apply transform
+    ------------------------------*/
+    stickman.style.left = `${currentX}px`;
+    stickman.style.top = `${currentY}px`;
+
+    stickman.style.transform =
+      `translate(-50%, -50%) rotate(${angle + rotationOffset+-15}deg) scaleX(${flip})`;
+
+    requestAnimationFrame(animate);
+  }
+
+  requestAnimationFrame(animate);
+})();
+</script>
 </body>
 
 </html>
